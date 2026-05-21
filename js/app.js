@@ -1,13 +1,13 @@
 // ======================== ГЛОБАЛЬНОЕ СОСТОЯНИЕ ========================
-let schema = {};                    // { tableName: [col1, col2, ...] }
-let selectedTables = new Set();     // имена выбранных таблиц
-let joins = [];                     // { leftTable, leftColumn, rightTable, rightColumn, joinType }
-let selectedColumns = {};           // { "table.column": true }
-let whereConditions = [];           // { columnFull, operator, valueType, value, valueColumn }
-let groupByColumns = [];            // массив "table.column"
+let schema = {};
+let selectedTables = new Set();
+let joins = [];
+let selectedColumns = {};
+let whereConditions = [];
+let groupByColumns = [];
 let enableGroupBy = false;
-let aggregations = {};              // { "table.column": "COUNT" }
-let orderBy = [];                   // { columnFull, direction }
+let aggregations = {};
+let orderBy = [];
 
 // ======================== DOM ЭЛЕМЕНТЫ ========================
 const schemaUpload = document.getElementById('schemaUpload');
@@ -210,26 +210,26 @@ function renderJoinsUI() {
     joins.forEach((j, idx) => {
         const joinHint = getJoinTypeHint(j.joinType);
         
-        html += `<div class="join-item" data-hint="${escapeHtml(joinHint)}">
-                    <select data-join-idx="${idx}" data-field="leftTable" class="join-table-select">
+        html += `<div class="join-item" data-hint="${escapeHtml(joinHint)}" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; padding: 12px; background: #f9f9fc; border-radius: 16px;">
+                    <select data-join-idx="${idx}" data-field="leftTable" style="padding: 8px; border-radius: 20px;">
                         ${generateTableOptions(j.leftTable)}
                     </select>
-                    <select data-join-idx="${idx}" data-field="leftColumn" class="join-column-select">
+                    <select data-join-idx="${idx}" data-field="leftColumn" style="padding: 8px; border-radius: 20px;">
                         ${generateColumnOptions(j.leftTable, j.leftColumn)}
                     </select>
-                    <select data-join-idx="${idx}" data-field="joinType" class="join-type-select">
+                    <select data-join-idx="${idx}" data-field="joinType" style="padding: 8px; border-radius: 20px;">
                         <option value="INNER" ${j.joinType === 'INNER' ? 'selected' : ''}>INNER JOIN</option>
                         <option value="LEFT" ${j.joinType === 'LEFT' ? 'selected' : ''}>LEFT JOIN</option>
                         <option value="RIGHT" ${j.joinType === 'RIGHT' ? 'selected' : ''}>RIGHT JOIN</option>
                         <option value="FULL" ${j.joinType === 'FULL' ? 'selected' : ''}>FULL JOIN</option>
                     </select>
-                    <select data-join-idx="${idx}" data-field="rightTable" class="join-table-select">
+                    <select data-join-idx="${idx}" data-field="rightTable" style="padding: 8px; border-radius: 20px;">
                         ${generateTableOptions(j.rightTable)}
                     </select>
-                    <select data-join-idx="${idx}" data-field="rightColumn" class="join-column-select">
+                    <select data-join-idx="${idx}" data-field="rightColumn" style="padding: 8px; border-radius: 20px;">
                         ${generateColumnOptions(j.rightTable, j.rightColumn)}
                     </select>
-                    <button class="danger small-icon" data-remove-join="${idx}">✖</button>
+                    <button class="danger small-icon" data-remove-join="${idx}" style="padding: 4px 12px;">✖</button>
                  </div>`;
     });
     joinsWrapper.innerHTML = html;
@@ -265,15 +265,15 @@ function renderSelectColumns() {
     let html = '';
     for (let tbl of selectedTables) {
         const cols = schema[tbl] || [];
-        html += `<div class="table-col-group">
-                    <h4>📌 ${escapeHtml(tbl)}</h4>
-                    <div class="checkbox-grid">`;
+        html += `<div class="table-col-group" style="margin-bottom: 20px; border-left: 3px solid #89c2d0; padding-left: 16px;">
+                    <h4 style="margin-bottom: 8px;">📌 ${escapeHtml(tbl)}</h4>
+                    <div class="checkbox-grid" style="display: flex; flex-wrap: wrap; gap: 8px 18px; margin-bottom: 8px;">`;
         cols.forEach(col => {
             const colFull = `${tbl}.${col}`;
             const isChecked = selectedColumns[colFull] === true;
             html += `<label><input type="checkbox" class="col-checkbox" data-col="${colFull}" ${isChecked ? 'checked' : ''}> ${col}</label>`;
         });
-        html += `</div><button class="small-icon select-all-table" data-table="${tbl}">✔ Выбрать все ${tbl}</button></div>`;
+        html += `</div><button class="small-icon select-all-table" data-table="${tbl}" style="padding: 4px 12px;">✔ Выбрать все ${tbl}</button></div>`;
     }
     selectColumnsArea.innerHTML = html;
     
@@ -307,18 +307,20 @@ function renderWhereConditions() {
         return;
     }
     const allCols = getAllColumnsFlat();
+    
     if (whereConditions.length === 0) {
-        whereList.innerHTML = '<i>Нет условий WHERE. Добавьте фильтр.</i>';
+        whereList.innerHTML = '<i>Нет условий WHERE. Нажмите "+ Добавить условие"</i>';
         return;
     }
+    
     let html = '';
     whereConditions.forEach((w, idx) => {
         const valueType = w.valueType || 'constant';
-        html += `<div class="where-item">
-                    <select data-where-idx="${idx}" data-field="column" style="min-width: 160px;">
+        html += `<div class="where-item" style="display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; padding: 12px; background: #f9f9fc; border-radius: 16px;">
+                    <select data-where-idx="${idx}" data-field="column" style="min-width: 160px; padding: 8px; border-radius: 20px;">
                         ${allCols.map(c => `<option value="${c}" ${c === w.columnFull ? 'selected' : ''}>${c}</option>`).join('')}
                     </select>
-                    <select data-where-idx="${idx}" data-field="operator" style="min-width: 80px;">
+                    <select data-where-idx="${idx}" data-field="operator" style="min-width: 80px; padding: 8px; border-radius: 20px;">
                         <option ${w.operator === '=' ? 'selected' : ''}>=</option>
                         <option ${w.operator === '>' ? 'selected' : ''}>></option>
                         <option ${w.operator === '<' ? 'selected' : ''}><</option>
@@ -328,20 +330,20 @@ function renderWhereConditions() {
                         <option ${w.operator === 'LIKE' ? 'selected' : ''}>LIKE</option>
                         <option ${w.operator === 'ILIKE' ? 'selected' : ''}>ILIKE</option>
                     </select>
-                    <select data-where-idx="${idx}" data-field="valueType" style="min-width: 120px;">
+                    <select data-where-idx="${idx}" data-field="valueType" style="min-width: 120px; padding: 8px; border-radius: 20px;">
                         <option value="constant" ${valueType === 'constant' ? 'selected' : ''}>📝 Константа</option>
-                        <option value="column" ${valueType === 'column' ? 'selected' : ''}>🔗 Столбец таблицы</option>
+                        <option value="column" ${valueType === 'column' ? 'selected' : ''}>🔗 Столбец</option>
                     </select>`;
         
         if (valueType === 'constant') {
-            html += `<input type="text" placeholder="значение" data-where-idx="${idx}" data-field="value" value="${escapeHtml(w.value || '')}" style="min-width: 180px;">`;
+            html += `<input type="text" placeholder="значение" data-where-idx="${idx}" data-field="value" value="${escapeHtml(w.value || '')}" style="min-width: 180px; padding: 8px; border-radius: 20px;">`;
         } else {
-            html += `<select data-where-idx="${idx}" data-field="valueColumn" style="min-width: 180px;">
+            html += `<select data-where-idx="${idx}" data-field="valueColumn" style="min-width: 180px; padding: 8px; border-radius: 20px;">
                         ${allCols.map(c => `<option value="${c}" ${c === w.valueColumn ? 'selected' : ''}>${c}</option>`).join('')}
                     </select>`;
         }
         
-        html += `<button class="danger small-icon" data-remove-where="${idx}">✖</button>
+        html += `<button class="danger small-icon" data-remove-where="${idx}" style="padding: 4px 12px;">✖</button>
                 </div>`;
     });
     whereList.innerHTML = html;
@@ -396,7 +398,7 @@ function renderGroupByAndAggregates() {
         return;
     }
     const allColumnsFlat = getAllColumnsFlat();
-    let groupHtml = '<div class="checkbox-grid">';
+    let groupHtml = '<div class="checkbox-grid" style="display: flex; flex-wrap: wrap; gap: 8px 18px;">';
     allColumnsFlat.forEach(col => {
         const checked = groupByColumns.includes(col);
         groupHtml += `<label><input type="checkbox" class="groupby-cb" value="${col}" ${checked ? 'checked' : ''}> ${col}</label>`;
@@ -425,9 +427,9 @@ function renderGroupByAndAggregates() {
         let aggHtml = '<div><strong>📊 Агрегатные функции:</strong><br><small style="color:#4a6f8a;">для столбцов не в GROUP BY</small></div>';
         nonGroupCols.forEach(col => {
             const currentAgg = aggregations[col] || 'COUNT';
-            aggHtml += `<div class="agg-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 8px; background: #f9f9fc; border-radius: 12px;">
+            aggHtml += `<div style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 8px; background: #f9f9fc; border-radius: 12px;">
                             <span style="font-weight:500;">${col}</span>
-                            <select data-agg-col="${col}" style="margin-left: 12px;">
+                            <select data-agg-col="${col}" style="margin-left: 12px; padding: 6px 12px; border-radius: 20px;">
                                 <option ${currentAgg === 'COUNT' ? 'selected' : ''}>COUNT</option>
                                 <option ${currentAgg === 'SUM' ? 'selected' : ''}>SUM</option>
                                 <option ${currentAgg === 'AVG' ? 'selected' : ''}>AVG</option>
@@ -457,12 +459,12 @@ function renderOrderBy() {
     }
     const allCols = getAllColumnsFlat();
     if (orderBy.length === 0) {
-        orderByList.innerHTML = '<i>Нет полей сортировки</i>';
+        orderByList.innerHTML = '<i>Нет полей сортировки. Нажмите "+ Добавить поле"</i>';
         return;
     }
     let html = '';
     orderBy.forEach((ob, idx) => {
-        html += `<div class="order-item" style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+        html += `<div style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px; padding: 8px; background: #f9f9fc; border-radius: 16px;">
                     <select data-order-idx="${idx}" data-field="column" style="min-width: 200px; padding: 8px; border-radius: 20px;">
                         ${allCols.map(c => `<option value="${c}" ${ob.columnFull === c ? 'selected' : ''}>${c}</option>`).join('')}
                     </select>
@@ -470,7 +472,7 @@ function renderOrderBy() {
                         <option ${ob.direction === 'ASC' ? 'selected' : ''}>ASC</option>
                         <option ${ob.direction === 'DESC' ? 'selected' : ''}>DESC</option>
                     </select>
-                    <button class="danger small-icon" data-remove-order="${idx}">✖</button>
+                    <button class="danger small-icon" data-remove-order="${idx}" style="padding: 4px 12px;">✖</button>
                 </div>`;
     });
     orderByList.innerHTML = html;
@@ -492,7 +494,7 @@ function renderOrderBy() {
     });
 }
 
-// ======================== ГЕНЕРАЦИЯ SQL (ИСПРАВЛЕННАЯ ВЕРСИЯ) ========================
+// ======================== ГЕНЕРАЦИЯ SQL ========================
 function generateSQL() {
     if (selectedTables.size === 0) {
         return "-- Ошибка: не выбрано ни одной таблицы --";
@@ -520,7 +522,7 @@ function generateSQL() {
     // FROM
     const fromTable = Array.from(selectedTables)[0];
     
-    // JOIN clause - ТОЛЬКО условие связи между таблицами
+    // JOIN clause - только условие связи
     let joinClauses = [];
     for (let j of joins) {
         const onCondition = `${j.leftTable}.${j.leftColumn} = ${j.rightTable}.${j.rightColumn}`;
@@ -529,16 +531,17 @@ function generateSQL() {
     
     let joinClause = joinClauses.join(' ');
     
-    // Если нет JOIN, но несколько таблиц - используем CROSS JOIN
+    // Если нет JOIN, но несколько таблиц
     if (joinClauses.length === 0 && selectedTables.size > 1) {
         const otherTables = Array.from(selectedTables).slice(1);
         joinClause = otherTables.map(t => `CROSS JOIN ${t}`).join(' ');
     }
     
-    // WHERE clause - ВСЕ условия остаются в WHERE
+    // WHERE clause - ВСЕ условия пользователя
     let whereClause = '';
-    if (whereConditions.length) {
-        whereClause = 'WHERE ' + whereConditions.map(w => {
+    if (whereConditions.length > 0) {
+        const whereParts = [];
+        for (let w of whereConditions) {
             const valueType = w.valueType || 'constant';
             let rightValue;
             if (valueType === 'column') {
@@ -553,8 +556,11 @@ function generateSQL() {
                     rightValue = /^\d+(\.\d+)?$/.test(rawValue) ? rawValue : `'${rawValue.replace(/'/g, "''")}'`;
                 }
             }
-            return `${w.columnFull} ${w.operator} ${rightValue}`;
-        }).join(' AND ');
+            whereParts.push(`${w.columnFull} ${w.operator} ${rightValue}`);
+        }
+        if (whereParts.length > 0) {
+            whereClause = 'WHERE ' + whereParts.join(' AND ');
+        }
     }
     
     // GROUP BY
@@ -618,6 +624,7 @@ addWhereBtn.addEventListener('click', () => {
                 value: '' 
             });
             renderWhereConditions();
+            showMessage('➕ Добавлено условие WHERE');
         }
     } else {
         showMessage('Сначала выберите таблицы', true);
@@ -646,6 +653,7 @@ addOrderBtn.addEventListener('click', () => {
         if (all.length) {
             orderBy.push({ columnFull: all[0], direction: 'ASC' });
             renderOrderBy();
+            showMessage('➕ Добавлено поле сортировки');
         }
     } else {
         showMessage('Выберите таблицы', true);
@@ -678,7 +686,7 @@ saveSqlBtn.addEventListener('click', () => {
     showMessage('💾 Файл сохранён');
 });
 
-// ======================== ОБРАБОТЧИК ДЛЯ ПОДСКАЗОК JOIN ========================
+// ======================== ПОДСКАЗКИ ДЛЯ JOIN ========================
 const toggleJoinHintBtn = document.getElementById('toggleJoinHintBtn');
 const joinHintContent = document.getElementById('joinHintContent');
 
