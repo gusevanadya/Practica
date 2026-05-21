@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>SQL Query Builder for PostgreSQL | Интерактивный конструктор</title>
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+<div class="app-container">
+    <div class="header">
+        <div>
+            <h1>🐘 SQL Builder for PostgreSQL</h1>
+            <div class="sub">интерактивный конструктор запросов на основе схемы</div>
+        </div>
+        <button id="resetEverythingBtn" class="danger">⟳ Очистить всё (схема остаётся)</button>
+    </div>
+
+    <!-- Загрузка схемы -->
+    <div class="card">
+        <div class="card-header">
+            <h3>📂 1. Загрузить схему БД</h3>
+            <span class="badge">формат: таблица\tколонка1\tколонка2...</span>
+        </div>
+        <input type="file" id="schemaUpload" accept=".txt,.sql,.csv,.tsv" />
+        <div id="schemaMessage" class="message-bar" style="display: none;"></div>
+    </div>
+
+    <div class="grid-2col">
+        <!-- ЛЕВАЯ КОЛОНКА: таблицы + JOIN + SELECT -->
+        <div>
+            <!-- Выбор таблиц -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📋 2. Выбор таблиц</h3>
+                    <span id="tablesCounter" class="badge">0 таблиц</span>
+                </div>
+                <div id="tablesListContainer" class="checkbox-group">— нет данных, загрузите схему —</div>
+                <div class="selected-box"><strong>✅ Выбранные:</strong> <span id="selectedTablesSpan">—</span></div>
+            </div>
+
+            <!-- JOIN (отображается только при >=2 таблицах) -->
+            <div class="card" id="joinBlock" style="display: none;">
+    <div class="card-header">
+        <h3>🔗 3. JOIN (связи)</h3>
+        <button id="addJoinBtn" class="small-icon">+ Добавить условие</button>
+    </div>
+    
+    <!-- Блок с подсказками по типам JOIN -->
+    <div class="join-hint">
+        <div class="join-hint-header">
+            <span class="join-hint-title">💡 Подсказка по типам JOIN</span>
+            <button id="toggleJoinHintBtn" class="small-icon hint-toggle">▼ Скрыть</button>
+        </div>
+        <div id="joinHintContent" class="join-hint-content">
+            <div class="join-type-hint">
+                <div class="join-type-name">INNER JOIN</div>
+                <div class="join-type-desc">📊 Возвращает только те строки, где есть совпадение в ОБЕИХ таблицах</div>
+                <div class="join-type-example">Пример: Найти всех сотрудников, у которых есть отдел (исключит сотрудников без отдела)</div>
+            </div>
+            <div class="join-type-hint">
+                <div class="join-type-name">LEFT JOIN</div>
+                <div class="join-type-desc">📋 Возвращает ВСЕ строки из левой таблицы + совпадения из правой (если нет — NULL)</div>
+                <div class="join-type-example">Пример: Все сотрудники (даже без отдела) + информация об отделе, если есть</div>
+            </div>
+            <div class="join-type-hint">
+                <div class="join-type-name">RIGHT JOIN</div>
+                <div class="join-type-desc">📌 Возвращает ВСЕ строки из правой таблицы + совпадения из левой (если нет — NULL)</div>
+                <div class="join-type-example">Пример: Все отделы + сотрудники в них (отделы без сотрудников тоже попадут)</div>
+            </div>
+            <div class="join-type-hint">
+                <div class="join-type-name">FULL JOIN</div>
+                <div class="join-type-desc">🔄 Возвращает ВСЕ строки из обеих таблиц (совпадения + несовпадения с NULL)</div>
+                <div class="join-type-example">Пример: Все сотрудники и все отделы, даже если нет соответствий</div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="joinsWrapper">— добавьте JOIN условия —</div>
+</div>
+            <!-- SELECT columns -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>✅ 4. Выборка столбцов (SELECT)</h3>
+                    <button id="globalSelectAllBtn" class="small-icon">✔ Выбрать все столбцы</button>
+                </div>
+                <div id="selectColumnsArea" class="columns-scroll">— нет выбранных таблиц —</div>
+            </div>
+        </div>
+
+        <!-- ПРАВАЯ КОЛОНКА: WHERE, GROUP BY + Агрегаты, ORDER BY -->
+        <div>
+            <!-- WHERE -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>🎯 5. Фильтрация (WHERE)</h3>
+                    <button id="addWhereBtn">+ Добавить условие</button>
+                </div>
+                <div id="whereList">— нет условий —</div>
+            </div>
+
+            <!-- GROUP BY и агрегаты -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>📊 6. GROUP BY + агрегаты</h3>
+                    <button id="clearGroupByBtn" class="small-icon danger">Сбросить группировку</button>
+                </div>
+                <div style="margin-bottom: 12px;">
+                    <label><input type="checkbox" id="enableGroupByToggle"> Включить GROUP BY</label>
+                </div>
+                <div id="groupByCheckboxesArea" style="margin: 10px 0; max-height: 160px; overflow-y: auto; background: #f9fdfe; border-radius: 18px; padding: 8px;">— выберите таблицы —</div>
+                <div id="aggregateSelectArea" style="margin-top: 14px;">— агрегаты для не-группирующих полей —</div>
+            </div>
+
+            <!-- ORDER BY -->
+            <div class="card">
+                <div class="card-header">
+                    <h3>⬆️ 7. Сортировка (ORDER BY)</h3>
+                    <button id="addOrderBtn">+ Добавить поле</button>
+                </div>
+                <div id="orderByList">— нет полей сортировки —</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Генерация SQL -->
+    <div class="card">
+        <div class="card-header">
+            <h3>⚡ 8. Сгенерированный SQL (PostgreSQL)</h3>
+            <div><button id="generateSqlBtn" class="primary">🚀 Сгенерировать SQL</button></div>
+        </div>
+        <textarea id="sqlOutput" rows="7" readonly placeholder="Нажмите «Сгенерировать SQL»..."></textarea>
+        <div class="sql-actions">
+            <button id="saveSqlBtn">💾 Сохранить в файл (.sql)</button>
+        </div>
+    </div>
+    <footer>
+        🧩 Клиентский конструктор SQL | Все данные обрабатываются в браузере
+    </footer>
+</div>
+
+<script src="js/app.js"></script>
+</body>
+</html>

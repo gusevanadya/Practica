@@ -1,0 +1,415 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+    background: #f7f9fc;
+    color: #1a2c3e;
+    padding: 24px 20px;
+}
+
+/* Контейнер */
+.app-container {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+/* Заголовок и глобальные стили */
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 28px;
+    gap: 16px;
+    background: white;
+    padding: 16px 24px;
+    border-radius: 28px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid #e2edf2;
+}
+
+h1 {
+    font-size: 1.9rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, #1e5a7d, #2c7da0);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+    letter-spacing: -0.3px;
+}
+
+.sub {
+    color: #4a6f8a;
+    margin-top: 4px;
+    font-size: 0.9rem;
+}
+
+button, .btn {
+    background: white;
+    border: 1px solid #cbdde6;
+    padding: 8px 18px;
+    border-radius: 40px;
+    font-weight: 500;
+    font-size: 0.85rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.02);
+}
+
+button.primary {
+    background: #1e6f5c;
+    border-color: #1e6f5c;
+    color: white;
+    box-shadow: 0 2px 4px rgba(30,111,92,0.2);
+}
+
+button.primary:hover {
+    background: #0f5a4a;
+    transform: translateY(-1px);
+}
+
+button.danger {
+    background: #fff8f7;
+    border-color: #f3c7c2;
+    color: #bc4e2c;
+}
+
+button.danger:hover {
+    background: #fee9e6;
+    border-color: #e09b8c;
+}
+
+.card {
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
+    padding: 1.4rem 1.6rem;
+    margin-bottom: 24px;
+    border: 1px solid #e4edf2;
+    transition: box-shadow 0.2s;
+}
+
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    margin-bottom: 1.2rem;
+    border-bottom: 2px solid #e7f0f5;
+    padding-bottom: 0.6rem;
+}
+
+.card-header h3 {
+    font-size: 1.35rem;
+    font-weight: 600;
+    color: #205072;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.badge {
+    background: #eef3fa;
+    border-radius: 40px;
+    padding: 4px 12px;
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #2c7da0;
+}
+
+.grid-2col {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(460px, 1fr));
+    gap: 24px;
+}
+
+.checkbox-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin: 10px 0;
+}
+
+.checkbox-group label {
+    background: #f9fdfe;
+    padding: 6px 15px;
+    border-radius: 30px;
+    border: 1px solid #cfdfe8;
+    cursor: pointer;
+    font-weight: 500;
+    transition: 0.1s;
+}
+
+.selected-box {
+    background: #eef6f9;
+    padding: 10px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    margin-top: 12px;
+    border-left: 4px solid #2c7da0;
+}
+
+.join-item, .where-item, .order-item {
+    background: #fafeff;
+    padding: 12px 14px;
+    border-radius: 20px;
+    margin-bottom: 12px;
+    border: 1px solid #e2edf3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: flex-end;
+}
+
+select, input {
+    padding: 8px 14px;
+    border-radius: 30px;
+    border: 1px solid #cbdde6;
+    background: white;
+    font-size: 0.85rem;
+    min-width: 130px;
+}
+
+.columns-scroll {
+    max-height: 360px;
+    overflow-y: auto;
+    padding-right: 8px;
+}
+
+.table-col-group {
+    margin-bottom: 20px;
+    border-left: 3px solid #89c2d0;
+    padding-left: 16px;
+}
+
+.table-col-group h4 {
+    margin-bottom: 8px;
+    font-weight: 700;
+    color: #1c5d7a;
+}
+
+.checkbox-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 18px;
+    margin-bottom: 8px;
+}
+
+textarea {
+    width: 100%;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    background: #0f2a33;
+    color: #d4f1f9;
+    padding: 18px;
+    border-radius: 20px;
+    border: none;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    resize: vertical;
+}
+
+.sql-actions {
+    display: flex;
+    gap: 12px;
+    margin-top: 12px;
+    justify-content: flex-end;
+}
+
+.message-bar {
+    background: #fff8e7;
+    border-left: 5px solid #f4b942;
+    padding: 10px 18px;
+    border-radius: 20px;
+    margin: 12px 0;
+    font-size: 0.85rem;
+}
+
+hr {
+    margin: 16px 0;
+}
+
+@media (max-width: 780px) {
+    body { padding: 16px; }
+    .card { padding: 1rem; }
+    .grid-2col { grid-template-columns: 1fr; }
+}
+
+.flex-between {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.small-icon {
+    padding: 4px 12px;
+    font-size: 0.7rem;
+}
+
+footer {
+    text-align: center;
+    margin-top: 32px;
+    font-size: 0.75rem;
+    color: #6f9ab3;
+}
+
+/* Добавить в конец файла */
+
+/* Стили для подсказок JOIN */
+.join-hint {
+    background: linear-gradient(135deg, #f0f9ff 0%, #e6f3fa 100%);
+    border-radius: 20px;
+    padding: 12px 16px;
+    margin-bottom: 20px;
+    border: 1px solid #cce5f0;
+    transition: all 0.3s ease;
+}
+
+.join-hint-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    margin-bottom: 8px;
+}
+
+.join-hint-title {
+    font-weight: 600;
+    color: #1e6f8c;
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.hint-toggle {
+    background: transparent;
+    border: 1px solid #b8d9e8;
+    padding: 2px 12px;
+    font-size: 0.7rem;
+}
+
+.join-hint-content {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 12px;
+    margin-top: 12px;
+    transition: all 0.3s ease;
+}
+
+.join-hint-content.collapsed {
+    display: none;
+}
+
+.join-type-hint {
+    background: white;
+    border-radius: 14px;
+    padding: 10px 14px;
+    border-left: 4px solid;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.join-type-name {
+    font-weight: 700;
+    font-size: 0.9rem;
+    margin-bottom: 6px;
+}
+
+.join-type-desc {
+    font-size: 0.8rem;
+    color: #2c5a6e;
+    margin-bottom: 6px;
+    line-height: 1.4;
+}
+
+.join-type-example {
+    font-size: 0.7rem;
+    color: #6f9ab3;
+    font-style: italic;
+    padding-top: 5px;
+    border-top: 1px dashed #d4e4ed;
+}
+
+/* Цвета для разных типов JOIN */
+.join-type-hint:first-child { border-left-color: #3b82f6; }
+.join-type-hint:nth-child(2) { border-left-color: #10b981; }
+.join-type-hint:nth-child(3) { border-left-color: #f59e0b; }
+.join-type-hint:nth-child(4) { border-left-color: #8b5cf6; }
+
+/* Анимация для плавного скрытия/показа */
+@keyframes fadeSlide {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.join-hint-content {
+    animation: fadeSlide 0.3s ease;
+}
+
+/* Подсказка при наведении на элементы JOIN */
+.join-item select:hover {
+    border-color: #89c2d0;
+    background: #f9feff;
+}
+
+/* Дополнительная информационная иконка */
+.info-icon {
+    display: inline-block;
+    width: 18px;
+    height: 18px;
+    background: #2c7da0;
+    color: white;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 18px;
+    font-size: 12px;
+    font-weight: bold;
+    margin-left: 6px;
+    cursor: help;
+    transition: all 0.2s;
+}
+
+.info-icon:hover {
+    background: #1e5a7d;
+    transform: scale(1.1);
+}
+
+/* Всплывающая подсказка при наведении на джойн */
+.join-item {
+    position: relative;
+}
+
+.join-item:hover::after {
+    content: attr(data-hint);
+    position: absolute;
+    bottom: 100%;
+    left: 0;
+    background: #1e293b;
+    color: white;
+    font-size: 0.7rem;
+    padding: 4px 10px;
+    border-radius: 12px;
+    white-space: nowrap;
+    z-index: 10;
+    pointer-events: none;
+    margin-bottom: 5px;
+}
+
+@media (max-width: 780px) {
+    .join-hint-content {
+        grid-template-columns: 1fr;
+    }
+    
+    .join-item:hover::after {
+        display: none;
+    }
+}
