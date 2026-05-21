@@ -1,7 +1,7 @@
 // ======================== ГЛОБАЛЬНОЕ СОСТОЯНИЕ ========================
 let schema = {};                    // { tableName: [col1, col2, ...] }
 let selectedTables = new Set();     // имена выбранных таблиц
-let joins = [];                     // { leftTable, leftColumn, rightTable, rightColumn, joinType, additionalConditions }
+let joins = [];                     // { leftTable, leftColumn, rightTable, rightColumn, joinType }
 let selectedColumns = {};           // { "table.column": true }
 let whereConditions = [];           // { columnFull, operator, valueType, value, valueColumn }
 let groupByColumns = [];            // массив "table.column"
@@ -68,7 +68,6 @@ function isValidColumnFull(colFull) {
     return selectedTables.has(tbl);
 }
 
-// Очистка всех зависимостей (кроме схемы)
 function resetAllState() {
     selectedTables.clear();
     joins = [];
@@ -90,7 +89,6 @@ function resetAllState() {
     sqlOutput.value = '';
 }
 
-// Парсинг файла схемы
 function parseSchemaFile(content) {
     const lines = content.split(/\r?\n/);
     const newSchema = {};
@@ -135,7 +133,6 @@ function loadSchema(file) {
 
 // ======================== ОТРИСОВКА КОМПОНЕНТОВ ========================
 
-// 2. Список таблиц с чекбоксами
 function renderTablesChecklist() {
     if (Object.keys(schema).length === 0) {
         tablesListContainer.innerHTML = '<i>Загрузите файл со схемой</i>';
@@ -156,7 +153,6 @@ function renderTablesChecklist() {
             } else {
                 selectedTables.delete(table);
             }
-            // Очищаем зависимости, ссылающиеся на удалённые таблицы
             joins = joins.filter(j => selectedTables.has(j.leftTable) && selectedTables.has(j.rightTable));
             whereConditions = whereConditions.filter(w => isValidColumnFull(w.columnFull) && 
                 (w.valueType !== 'column' || isValidColumnFull(w.valueColumn)));
@@ -181,7 +177,6 @@ function updateSelectedTablesUI() {
     joinBlock.style.display = selectedTables.size >= 2 ? 'block' : 'none';
 }
 
-// 3. JOIN интерфейс (с возможностью добавлять условия в ON)
 function generateTableOptions(selectedVal) {
     return Array.from(selectedTables).map(t => `<option value="${t}" ${t === selectedVal ? 'selected' : ''}>${t}</option>`).join('');
 }
@@ -216,47 +211,29 @@ function renderJoinsUI() {
         const joinHint = getJoinTypeHint(j.joinType);
         
         html += `<div class="join-item" data-hint="${escapeHtml(joinHint)}">
-                    <div class="join-field-group">
-                        <label class="join-field-label">Левая таблица</label>
-                        <select data-join-idx="${idx}" data-field="leftTable" class="join-table-select">
-                            ${generateTableOptions(j.leftTable)}
-                        </select>
-                    </div>
-                    <div class="join-field-group">
-                        <label class="join-field-label">Столбец</label>
-                        <select data-join-idx="${idx}" data-field="leftColumn" class="join-column-select">
-                            ${generateColumnOptions(j.leftTable, j.leftColumn)}
-                        </select>
-                    </div>
-                    
-                    <div class="join-type-container">
-                        <select data-join-idx="${idx}" data-field="joinType" class="join-type-select">
-                            <option value="INNER" ${j.joinType === 'INNER' ? 'selected' : ''}>🔗 INNER JOIN</option>
-                            <option value="LEFT" ${j.joinType === 'LEFT' ? 'selected' : ''}>⬅️ LEFT JOIN</option>
-                            <option value="RIGHT" ${j.joinType === 'RIGHT' ? 'selected' : ''}>➡️ RIGHT JOIN</option>
-                            <option value="FULL" ${j.joinType === 'FULL' ? 'selected' : ''}>🔄 FULL JOIN</option>
-                        </select>
-                    </div>
-                    
-                    <div class="join-field-group">
-                        <label class="join-field-label">Правая таблица</label>
-                        <select data-join-idx="${idx}" data-field="rightTable" class="join-table-select">
-                            ${generateTableOptions(j.rightTable)}
-                        </select>
-                    </div>
-                    <div class="join-field-group">
-                        <label class="join-field-label">Столбец</label>
-                        <select data-join-idx="${idx}" data-field="rightColumn" class="join-column-select">
-                            ${generateColumnOptions(j.rightTable, j.rightColumn)}
-                        </select>
-                    </div>
-                    
-                    <button class="danger small-icon" data-remove-join="${idx}" title="Удалить условие JOIN">✖</button>
+                    <select data-join-idx="${idx}" data-field="leftTable" class="join-table-select">
+                        ${generateTableOptions(j.leftTable)}
+                    </select>
+                    <select data-join-idx="${idx}" data-field="leftColumn" class="join-column-select">
+                        ${generateColumnOptions(j.leftTable, j.leftColumn)}
+                    </select>
+                    <select data-join-idx="${idx}" data-field="joinType" class="join-type-select">
+                        <option value="INNER" ${j.joinType === 'INNER' ? 'selected' : ''}>INNER JOIN</option>
+                        <option value="LEFT" ${j.joinType === 'LEFT' ? 'selected' : ''}>LEFT JOIN</option>
+                        <option value="RIGHT" ${j.joinType === 'RIGHT' ? 'selected' : ''}>RIGHT JOIN</option>
+                        <option value="FULL" ${j.joinType === 'FULL' ? 'selected' : ''}>FULL JOIN</option>
+                    </select>
+                    <select data-join-idx="${idx}" data-field="rightTable" class="join-table-select">
+                        ${generateTableOptions(j.rightTable)}
+                    </select>
+                    <select data-join-idx="${idx}" data-field="rightColumn" class="join-column-select">
+                        ${generateColumnOptions(j.rightTable, j.rightColumn)}
+                    </select>
+                    <button class="danger small-icon" data-remove-join="${idx}">✖</button>
                  </div>`;
     });
     joinsWrapper.innerHTML = html;
     
-    // Привязываем события
     document.querySelectorAll('[data-join-idx]').forEach(el => {
         const idx = parseInt(el.dataset.joinIdx);
         if (el.dataset.field) {
@@ -280,7 +257,6 @@ function renderJoinsUI() {
     });
 }
 
-// 4. Выбор столбцов SELECT
 function renderSelectColumns() {
     if (selectedTables.size === 0) {
         selectColumnsArea.innerHTML = '— нет выбранных таблиц —';
@@ -325,7 +301,6 @@ function renderSelectColumns() {
     });
 }
 
-// 5. WHERE условия
 function renderWhereConditions() {
     if (selectedTables.size === 0) {
         whereList.innerHTML = '— нет таблиц —';
@@ -414,7 +389,6 @@ function renderWhereConditions() {
     });
 }
 
-// 6. GROUP BY и агрегаты
 function renderGroupByAndAggregates() {
     if (selectedTables.size === 0) {
         groupByCheckboxesArea.innerHTML = '— нет таблиц —';
@@ -451,9 +425,9 @@ function renderGroupByAndAggregates() {
         let aggHtml = '<div><strong>📊 Агрегатные функции:</strong><br><small style="color:#4a6f8a;">для столбцов не в GROUP BY</small></div>';
         nonGroupCols.forEach(col => {
             const currentAgg = aggregations[col] || 'COUNT';
-            aggHtml += `<div class="join-item" style="justify-content: space-between;">
+            aggHtml += `<div class="agg-item" style="display: flex; justify-content: space-between; align-items: center; padding: 8px; margin-bottom: 8px; background: #f9f9fc; border-radius: 12px;">
                             <span style="font-weight:500;">${col}</span>
-                            <select data-agg-col="${col}">
+                            <select data-agg-col="${col}" style="margin-left: 12px;">
                                 <option ${currentAgg === 'COUNT' ? 'selected' : ''}>COUNT</option>
                                 <option ${currentAgg === 'SUM' ? 'selected' : ''}>SUM</option>
                                 <option ${currentAgg === 'AVG' ? 'selected' : ''}>AVG</option>
@@ -476,7 +450,6 @@ function renderGroupByAndAggregates() {
     }
 }
 
-// 7. ORDER BY
 function renderOrderBy() {
     if (selectedTables.size === 0) {
         orderByList.innerHTML = '— нет таблиц —';
@@ -489,13 +462,13 @@ function renderOrderBy() {
     }
     let html = '';
     orderBy.forEach((ob, idx) => {
-        html += `<div class="order-item">
-                    <select data-order-idx="${idx}" data-field="column" style="min-width: 200px;">
+        html += `<div class="order-item" style="display: flex; gap: 12px; align-items: center; margin-bottom: 12px;">
+                    <select data-order-idx="${idx}" data-field="column" style="min-width: 200px; padding: 8px; border-radius: 20px;">
                         ${allCols.map(c => `<option value="${c}" ${ob.columnFull === c ? 'selected' : ''}>${c}</option>`).join('')}
                     </select>
-                    <select data-order-idx="${idx}" data-field="direction">
-                        <option ${ob.direction === 'ASC' ? 'selected' : ''}>ASC (по возрастанию)</option>
-                        <option ${ob.direction === 'DESC' ? 'selected' : ''}>DESC (по убыванию)</option>
+                    <select data-order-idx="${idx}" data-field="direction" style="padding: 8px; border-radius: 20px;">
+                        <option ${ob.direction === 'ASC' ? 'selected' : ''}>ASC</option>
+                        <option ${ob.direction === 'DESC' ? 'selected' : ''}>DESC</option>
                     </select>
                     <button class="danger small-icon" data-remove-order="${idx}">✖</button>
                 </div>`;
@@ -519,7 +492,7 @@ function renderOrderBy() {
     });
 }
 
-// 8. Генерация SQL (ИСПРАВЛЕНА ВЕРСИЯ)
+// ======================== ГЕНЕРАЦИЯ SQL (ИСПРАВЛЕННАЯ ВЕРСИЯ) ========================
 function generateSQL() {
     if (selectedTables.size === 0) {
         return "-- Ошибка: не выбрано ни одной таблицы --";
@@ -547,83 +520,25 @@ function generateSQL() {
     // FROM
     const fromTable = Array.from(selectedTables)[0];
     
-    // JOIN clause - правильно формируем условия в ON
+    // JOIN clause - ТОЛЬКО условие связи между таблицами
     let joinClauses = [];
     for (let j of joins) {
-        // Основное условие JOIN
-        let onConditions = [`${j.leftTable}.${j.leftColumn} = ${j.rightTable}.${j.rightColumn}`];
-        
-        // Добавляем в ON условия из WHERE, которые относятся к правой таблице при LEFT/RIGHT/FULL JOIN
-        // Для LEFT JOIN - условия на правую таблицу должны быть в ON
-        // Для INNER JOIN - можно оставить в WHERE или перенести в ON (оставим в WHERE для простоты)
-        if (j.joinType === 'LEFT' || j.joinType === 'RIGHT' || j.joinType === 'FULL') {
-            // Находим условия WHERE, которые ссылаются на правую таблицу (для LEFT JOIN)
-            const rightTableConditions = whereConditions.filter(w => {
-                const [tableName] = w.columnFull.split('.');
-                const valueType = w.valueType || 'constant';
-                // Условие относится к правой таблице ИЛИ это сравнение с константой
-                if (tableName === j.rightTable) return true;
-                if (valueType === 'column' && w.valueColumn && w.valueColumn.startsWith(j.rightTable + '.')) return true;
-                return false;
-            });
-            
-            for (let cond of rightTableConditions) {
-                const valueType = cond.valueType || 'constant';
-                let rightValue;
-                if (valueType === 'column') {
-                    rightValue = cond.valueColumn;
-                } else {
-                    const rawValue = cond.value || '';
-                    if (rawValue.toUpperCase() === 'NULL') {
-                        rightValue = 'NULL';
-                    } else if (rawValue.toUpperCase() === 'TRUE' || rawValue.toUpperCase() === 'FALSE') {
-                        rightValue = rawValue.toUpperCase();
-                    } else {
-                        rightValue = /^\d+(\.\d+)?$/.test(rawValue) ? rawValue : `'${rawValue.replace(/'/g, "''")}'`;
-                    }
-                }
-                onConditions.push(`${cond.columnFull} ${cond.operator} ${rightValue}`);
-            }
-        }
-        
-        const onClause = onConditions.join(' AND ');
-        joinClauses.push(`${j.joinType} JOIN ${j.rightTable} ON ${onClause}`);
+        const onCondition = `${j.leftTable}.${j.leftColumn} = ${j.rightTable}.${j.rightColumn}`;
+        joinClauses.push(`${j.joinType} JOIN ${j.rightTable} ON ${onCondition}`);
     }
     
     let joinClause = joinClauses.join(' ');
     
-    // Если нет JOIN, но несколько таблиц - предупреждение
+    // Если нет JOIN, но несколько таблиц - используем CROSS JOIN
     if (joinClauses.length === 0 && selectedTables.size > 1) {
-        joinClause = `-- ВНИМАНИЕ: выбрано несколько таблиц без JOIN\n${Array.from(selectedTables).slice(1).map(t => `CROSS JOIN ${t}`).join(' ')}`;
+        const otherTables = Array.from(selectedTables).slice(1);
+        joinClause = otherTables.map(t => `CROSS JOIN ${t}`).join(' ');
     }
     
-    // WHERE clause - только те условия, которые не были использованы в JOIN ON
-    let usedInJoinConditions = new Set();
-    for (let j of joins) {
-        if (j.joinType === 'LEFT' || j.joinType === 'RIGHT' || j.joinType === 'FULL') {
-            for (let w of whereConditions) {
-                const [tableName] = w.columnFull.split('.');
-                if (tableName === j.rightTable) {
-                    usedInJoinConditions.add(JSON.stringify(w));
-                }
-            }
-        }
-    }
-    
-    let remainingWhereConditions = whereConditions.filter(w => {
-        const [tableName] = w.columnFull.split('.');
-        // Для LEFT JOIN: условия на правую таблицу уже в ON, не дублируем в WHERE
-        for (let j of joins) {
-            if ((j.joinType === 'LEFT' || j.joinType === 'RIGHT' || j.joinType === 'FULL') && tableName === j.rightTable) {
-                return false;
-            }
-        }
-        return true;
-    });
-    
+    // WHERE clause - ВСЕ условия остаются в WHERE
     let whereClause = '';
-    if (remainingWhereConditions.length) {
-        whereClause = 'WHERE ' + remainingWhereConditions.map(w => {
+    if (whereConditions.length) {
+        whereClause = 'WHERE ' + whereConditions.map(w => {
             const valueType = w.valueType || 'constant';
             let rightValue;
             if (valueType === 'column') {
@@ -648,7 +563,7 @@ function generateSQL() {
     // ORDER BY
     let orderClause = orderBy.length ? 'ORDER BY ' + orderBy.map(o => `${o.columnFull} ${o.direction}`).join(', ') : '';
     
-    // Формируем финальный SQL с правильным форматированием
+    // Формируем финальный SQL
     let sql = `SELECT ${selectItems.join(', ')}\nFROM ${fromTable}`;
     if (joinClause) sql += `\n${joinClause}`;
     if (whereClause) sql += `\n${whereClause}`;
