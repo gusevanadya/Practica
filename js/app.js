@@ -1,7 +1,7 @@
 // ======================== ГЛОБАЛЬНОЕ СОСТОЯНИЕ ========================
 let schema = {};                    // { tableName: [col1, col2, ...] }
 let selectedTables = new Set();     // имена выбранных таблиц
-let joins = [];                     // { leftTable, leftColumn, rightTable, rightColumn, joinType }
+let joins = [];                     // { leftTable, leftColumn, rightTable, rightColumn, joinType, additionalConditions }
 let selectedColumns = {};           // { "table.column": true }
 let whereConditions = [];           // { columnFull, operator, valueType, value, valueColumn }
 let groupByColumns = [];            // массив "table.column"
@@ -181,7 +181,7 @@ function updateSelectedTablesUI() {
     joinBlock.style.display = selectedTables.size >= 2 ? 'block' : 'none';
 }
 
-// 3. JOIN интерфейс (с подсказками и улучшениями)
+// 3. JOIN интерфейс (с возможностью добавлять условия в ON)
 function generateTableOptions(selectedVal) {
     return Array.from(selectedTables).map(t => `<option value="${t}" ${t === selectedVal ? 'selected' : ''}>${t}</option>`).join('');
 }
@@ -191,47 +191,14 @@ function generateColumnOptions(table, selectedCol) {
     return schema[table].map(c => `<option value="${c}" ${c === selectedCol ? 'selected' : ''}>${c}</option>`).join('');
 }
 
-// Функция для получения подсказки по типу JOIN
 function getJoinTypeHint(joinType) {
     const hints = {
-        'INNER': '🎯 INNER JOIN: только совпадающие записи в обеих таблицах. Пример: найти заказы с информацией о клиенте (только где есть оба)',
-        'LEFT': '⬅️ LEFT JOIN: ВСЕ записи из левой таблицы + совпадения из правой (NULL если нет). Пример: все клиенты + их заказы (даже если заказов нет)',
-        'RIGHT': '➡️ RIGHT JOIN: ВСЕ записи из правой таблицы + совпадения из левой (NULL если нет). Пример: все заказы + информация о клиентах (даже если клиент удалён)',
-        'FULL': '🔄 FULL JOIN: ВСЕ записи из обеих таблиц. Пример: полное объединение двух списков, даже без соответствий'
+        'INNER': '🎯 INNER JOIN: только совпадающие записи в обеих таблицах',
+        'LEFT': '⬅️ LEFT JOIN: ВСЕ записи из левой таблицы + совпадения из правой (NULL если нет)',
+        'RIGHT': '➡️ RIGHT JOIN: ВСЕ записи из правой таблицы + совпадения из левой (NULL если нет)',
+        'FULL': '🔄 FULL JOIN: ВСЕ записи из обеих таблиц'
     };
     return hints[joinType] || hints['INNER'];
-}
-
-// Функция для обновления подсказок у элементов JOIN
-function enhanceJoinSelectWithTooltips() {
-    document.querySelectorAll('.join-type-select').forEach(select => {
-        if (!select.hasAttribute('data-enhanced')) {
-            select.setAttribute('data-enhanced', 'true');
-            
-            // Добавляем всплывающую подсказку к самому select
-            select.title = getJoinTypeHint(select.value);
-            
-            select.addEventListener('change', function() {
-                // При изменении типа JOIN обновляем подсказку
-                const selectedValue = this.value;
-                this.title = getJoinTypeHint(selectedValue);
-                
-                // Обновляем подсказку у родительского элемента join-item
-                const joinItem = this.closest('.join-item');
-                if (joinItem) {
-                    joinItem.setAttribute('data-hint', getJoinTypeHint(selectedValue));
-                }
-            });
-        }
-    });
-    
-    // Добавляем подсказки для всех join-item
-    document.querySelectorAll('.join-item').forEach(item => {
-        const joinTypeSelect = item.querySelector('.join-type-select');
-        if (joinTypeSelect && !item.hasAttribute('data-hint')) {
-            item.setAttribute('data-hint', getJoinTypeHint(joinTypeSelect.value));
-        }
-    });
 }
 
 function renderJoinsUI() {
@@ -311,9 +278,6 @@ function renderJoinsUI() {
             renderGroupByAndAggregates();
         });
     });
-    
-    // Добавляем улучшенные подсказки
-    enhanceJoinSelectWithTooltips();
 }
 
 // 4. Выбор столбцов SELECT
@@ -361,7 +325,7 @@ function renderSelectColumns() {
     });
 }
 
-// 5. WHERE условия (с поддержкой сравнения столбцов)
+// 5. WHERE условия
 function renderWhereConditions() {
     if (selectedTables.size === 0) {
         whereList.innerHTML = '— нет таблиц —';
@@ -407,7 +371,6 @@ function renderWhereConditions() {
     });
     whereList.innerHTML = html;
     
-    // Привязываем события
     document.querySelectorAll('[data-where-idx]').forEach(el => {
         const idx = parseInt(el.dataset.whereIdx);
         if (el.dataset.field === 'column') {
@@ -480,7 +443,6 @@ function renderGroupByAndAggregates() {
         });
     });
     
-    // Агрегаты для не-группирующих столбцов
     const selectedColsList = Object.keys(selectedColumns).length ? Object.keys(selectedColumns) : allColumnsFlat;
     const groupSet = new Set(groupByColumns);
     const nonGroupCols = selectedColsList.filter(col => !groupSet.has(col));
@@ -557,7 +519,7 @@ function renderOrderBy() {
     });
 }
 
-// 8. Генерация SQL (с поддержкой сравнения столбцов в WHERE)
+// 8. Генерация SQL (ИСПРАВЛЕНА ВЕРСИЯ)
 function generateSQL() {
     if (selectedTables.size === 0) {
         return "-- Ошибка: не выбрано ни одной таблицы --";
@@ -582,25 +544,91 @@ function generateSQL() {
     }
     if (selectItems.length === 0) selectItems = ['*'];
     
-    // FROM + JOIN
+    // FROM
     const fromTable = Array.from(selectedTables)[0];
-    let joinClause = '';
-    if (joins.length) {
-        joinClause = joins.map(j => `${j.joinType} JOIN ${j.rightTable} ON ${j.leftTable}.${j.leftColumn} = ${j.rightTable}.${j.rightColumn}`).join(' ');
-    } else if (selectedTables.size > 1) {
-        joinClause = `-- ВНИМАНИЕ: выбрано несколько таблиц без JOIN. Используется CROSS JOIN\n${Array.from(selectedTables).slice(1).map(t => `CROSS JOIN ${t}`).join(' ')}`;
+    
+    // JOIN clause - правильно формируем условия в ON
+    let joinClauses = [];
+    for (let j of joins) {
+        // Основное условие JOIN
+        let onConditions = [`${j.leftTable}.${j.leftColumn} = ${j.rightTable}.${j.rightColumn}`];
+        
+        // Добавляем в ON условия из WHERE, которые относятся к правой таблице при LEFT/RIGHT/FULL JOIN
+        // Для LEFT JOIN - условия на правую таблицу должны быть в ON
+        // Для INNER JOIN - можно оставить в WHERE или перенести в ON (оставим в WHERE для простоты)
+        if (j.joinType === 'LEFT' || j.joinType === 'RIGHT' || j.joinType === 'FULL') {
+            // Находим условия WHERE, которые ссылаются на правую таблицу (для LEFT JOIN)
+            const rightTableConditions = whereConditions.filter(w => {
+                const [tableName] = w.columnFull.split('.');
+                const valueType = w.valueType || 'constant';
+                // Условие относится к правой таблице ИЛИ это сравнение с константой
+                if (tableName === j.rightTable) return true;
+                if (valueType === 'column' && w.valueColumn && w.valueColumn.startsWith(j.rightTable + '.')) return true;
+                return false;
+            });
+            
+            for (let cond of rightTableConditions) {
+                const valueType = cond.valueType || 'constant';
+                let rightValue;
+                if (valueType === 'column') {
+                    rightValue = cond.valueColumn;
+                } else {
+                    const rawValue = cond.value || '';
+                    if (rawValue.toUpperCase() === 'NULL') {
+                        rightValue = 'NULL';
+                    } else if (rawValue.toUpperCase() === 'TRUE' || rawValue.toUpperCase() === 'FALSE') {
+                        rightValue = rawValue.toUpperCase();
+                    } else {
+                        rightValue = /^\d+(\.\d+)?$/.test(rawValue) ? rawValue : `'${rawValue.replace(/'/g, "''")}'`;
+                    }
+                }
+                onConditions.push(`${cond.columnFull} ${cond.operator} ${rightValue}`);
+            }
+        }
+        
+        const onClause = onConditions.join(' AND ');
+        joinClauses.push(`${j.joinType} JOIN ${j.rightTable} ON ${onClause}`);
     }
     
-    // WHERE (поддержка сравнения с константой или другим столбцом)
+    let joinClause = joinClauses.join(' ');
+    
+    // Если нет JOIN, но несколько таблиц - предупреждение
+    if (joinClauses.length === 0 && selectedTables.size > 1) {
+        joinClause = `-- ВНИМАНИЕ: выбрано несколько таблиц без JOIN\n${Array.from(selectedTables).slice(1).map(t => `CROSS JOIN ${t}`).join(' ')}`;
+    }
+    
+    // WHERE clause - только те условия, которые не были использованы в JOIN ON
+    let usedInJoinConditions = new Set();
+    for (let j of joins) {
+        if (j.joinType === 'LEFT' || j.joinType === 'RIGHT' || j.joinType === 'FULL') {
+            for (let w of whereConditions) {
+                const [tableName] = w.columnFull.split('.');
+                if (tableName === j.rightTable) {
+                    usedInJoinConditions.add(JSON.stringify(w));
+                }
+            }
+        }
+    }
+    
+    let remainingWhereConditions = whereConditions.filter(w => {
+        const [tableName] = w.columnFull.split('.');
+        // Для LEFT JOIN: условия на правую таблицу уже в ON, не дублируем в WHERE
+        for (let j of joins) {
+            if ((j.joinType === 'LEFT' || j.joinType === 'RIGHT' || j.joinType === 'FULL') && tableName === j.rightTable) {
+                return false;
+            }
+        }
+        return true;
+    });
+    
     let whereClause = '';
-    if (whereConditions.length) {
-        whereClause = 'WHERE ' + whereConditions.map(w => {
+    if (remainingWhereConditions.length) {
+        whereClause = 'WHERE ' + remainingWhereConditions.map(w => {
             const valueType = w.valueType || 'constant';
             let rightValue;
             if (valueType === 'column') {
                 rightValue = w.valueColumn;
             } else {
-                // Константа: число или строка в кавычках
                 const rawValue = w.value || '';
                 if (rawValue.toUpperCase() === 'NULL') {
                     rightValue = 'NULL';
@@ -620,6 +648,7 @@ function generateSQL() {
     // ORDER BY
     let orderClause = orderBy.length ? 'ORDER BY ' + orderBy.map(o => `${o.columnFull} ${o.direction}`).join(', ') : '';
     
+    // Формируем финальный SQL с правильным форматированием
     let sql = `SELECT ${selectItems.join(', ')}\nFROM ${fromTable}`;
     if (joinClause) sql += `\n${joinClause}`;
     if (whereClause) sql += `\n${whereClause}`;
@@ -650,7 +679,7 @@ addJoinBtn.addEventListener('click', () => {
             joinType: 'INNER'
         });
         renderJoinsUI();
-        showMessage(`➕ Добавлен JOIN: ${arr[0]} → ${arr[1]} (INNER)`, false);
+        showMessage(`➕ Добавлен JOIN: ${arr[0]} → ${arr[1]}`, false);
     } else {
         showMessage('Выберите минимум 2 таблицы для JOIN', true);
     }
@@ -734,7 +763,7 @@ saveSqlBtn.addEventListener('click', () => {
     showMessage('💾 Файл сохранён');
 });
 
-// ======================== ОБРАБОТЧИК ДЛЯ ПОДСКАЗОК JOIN (сворачиваемый блок) ========================
+// ======================== ОБРАБОТЧИК ДЛЯ ПОДСКАЗОК JOIN ========================
 const toggleJoinHintBtn = document.getElementById('toggleJoinHintBtn');
 const joinHintContent = document.getElementById('joinHintContent');
 
@@ -751,5 +780,4 @@ if (toggleJoinHintBtn && joinHintContent) {
     });
 }
 
-// Инициализация
 console.log('SQL Builder приложение загружено');
